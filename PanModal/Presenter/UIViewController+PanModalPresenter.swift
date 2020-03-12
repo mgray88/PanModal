@@ -44,16 +44,17 @@ extension UIViewController: PanModalPresenter {
          Here, we deliberately do not check for size classes. More info in `PanModalPresentationDelegate`
          */
 
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            viewControllerToPresent.modalPresentationStyle = .popover
-            viewControllerToPresent.popoverPresentationController?.sourceRect = sourceRect
-            viewControllerToPresent.popoverPresentationController?.sourceView = sourceView ?? view
-            viewControllerToPresent.popoverPresentationController?.delegate = PanModalPresentationDelegate.default
-        } else {
+//        if UIDevice.current.userInterfaceIdiom == .pad {
+//            viewControllerToPresent.modalPresentationStyle = .popover
+//            viewControllerToPresent.popoverPresentationController?.sourceRect = sourceRect
+//            viewControllerToPresent.popoverPresentationController?.sourceView = sourceView ?? view
+//            viewControllerToPresent.popoverPresentationController?.permittedArrowDirections = []
+//            viewControllerToPresent.popoverPresentationController?.delegate = PanModalPresentationDelegate.default
+//        } else {
             viewControllerToPresent.modalPresentationStyle = .custom
             viewControllerToPresent.modalPresentationCapturesStatusBarAppearance = true
             viewControllerToPresent.transitioningDelegate = PanModalPresentationDelegate.default
-        }
+//        }
 
         present(viewControllerToPresent, animated: true, completion: nil)
     }

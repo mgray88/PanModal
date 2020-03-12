@@ -72,7 +72,7 @@ public class PanModalPresentationAnimator: NSObject {
         let presentable = panModalLayoutType(from: transitionContext)
 
         // Calls viewWillAppear and viewWillDisappear
-        fromVC.beginAppearanceTransition(false, animated: true)
+//        fromVC.beginAppearanceTransition(false, animated: true)
         
         // Presents the view in shortForm position, initially
         let yPos: CGFloat = presentable?.shortFormYPos ?? 0.0
@@ -89,11 +89,35 @@ public class PanModalPresentationAnimator: NSObject {
             feedbackGenerator?.selectionChanged()
         }
 
+        let presentingView = fromVC.view.snapshotView(afterScreenUpdates: false)!
+        presentingView.tag = 99
+
+        if #available(iOS 11.0, *),
+            let inset = UIApplication.shared.keyWindow?.safeAreaInsets.bottom,
+            inset > 0 {
+
+            let corners: UIRectCorner = [.topLeft, .topRight]
+
+            let borderMask = CAShapeLayer()
+            borderMask.frame = presentingView.bounds
+            borderMask.path = UIBezierPath(
+                roundedRect: presentingView.bounds,
+                byRoundingCorners: corners,
+                cornerRadii: CGSize(width: 38.5, height: 38.5)
+            ).cgPath
+            presentingView.layer.mask = borderMask
+            presentingView.clipsToBounds = true
+        }
+
+        transitionContext.containerView.addSubview(presentingView)
+        transitionContext.containerView.sendSubviewToBack(presentingView)
+
         PanModalAnimator.animate({
+            presentingView.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
             panView.frame.origin.y = yPos
         }, config: presentable) { [weak self] didComplete in
             // Calls viewDidAppear and viewDidDisappear
-            fromVC.endAppearanceTransition()
+//            fromVC.endAppearanceTransition()
             transitionContext.completeTransition(didComplete)
             self?.feedbackGenerator = nil
         }
@@ -108,19 +132,18 @@ public class PanModalPresentationAnimator: NSObject {
             let toVC = transitionContext.viewController(forKey: .to),
             let fromVC = transitionContext.viewController(forKey: .from)
             else { return }
-
-        // Calls viewWillAppear and viewWillDisappear
-        toVC.beginAppearanceTransition(true, animated: true)
         
         let presentable = panModalLayoutType(from: transitionContext)
         let panView: UIView = transitionContext.containerView.panContainerView ?? fromVC.view
+        let presentingView = transitionContext.containerView.subviews.first { $0.tag == 99 }
 
         PanModalAnimator.animate({
+            presentingView?.transform = CGAffineTransform.identity
             panView.frame.origin.y = transitionContext.containerView.frame.height
         }, config: presentable) { didComplete in
+            toVC.view.layer.mask = nil
+            toVC.view.layer.masksToBounds = false
             fromVC.view.removeFromSuperview()
-            // Calls viewDidAppear and viewDidDisappear
-            toVC.endAppearanceTransition()
             transitionContext.completeTransition(didComplete)
         }
     }
