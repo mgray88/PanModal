@@ -38,7 +38,7 @@ open class PanModalPresentationController: UIPresentationController {
      */
     struct Constants {
         static let indicatorYOffset = CGFloat(8.0)
-        static let snapMovementSensitivity = CGFloat(0.7)
+        static let swipeVelocityThreshold = CGFloat(1280)
         static let dragIndicatorSize = CGSize(width: 36.0, height: 5.0)
     }
 
@@ -98,11 +98,6 @@ open class PanModalPresentationController: UIPresentationController {
      The value for the scroll content inset bottom when keyboard is not shown
      */
     private var standardOffset: CGFloat?
-
-    /**
-     The value for extra keyboard padding when adjusting scroll content on showing the keyboard
-     */
-    private var keyboardPadding: CGFloat = 20.0
 
     /**
      Determine anchored Y postion based on the `anchorModalToLongForm` flag
@@ -272,14 +267,19 @@ open class PanModalPresentationController: UIPresentationController {
 
         //if the presented view is already at max height and is scrollable then scroll to above the keyboard when keyboard is shown if needed
 
-        if let keyboardSize = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+        if let keyboardSize = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+            let keyboardBegin = notification.userInfo?[UIResponder.keyboardFrameBeginUserInfoKey] as? CGRect {
+
+            let keyboardChange = keyboardBegin.origin.y - keyboardSize.origin.y
+            guard keyboardChange != 0
+                else { return }
 
             if let scrollView = presentable?.panScrollable {
 
-                if standardOffset == nil && keyboardOffset == nil {
+                if standardOffset == nil {
                     standardOffset = scrollView.contentInset.bottom
-                    keyboardOffset = scrollView.contentInset.bottom + keyboardSize.height + keyboardPadding + anchoredYPosition
                 }
+                keyboardOffset = scrollView.contentInset.bottom + keyboardChange
 
                 var contentInset:UIEdgeInsets = scrollView.contentInset
                 contentInset.bottom = keyboardOffset ?? 0
@@ -289,7 +289,9 @@ open class PanModalPresentationController: UIPresentationController {
 
             if keyboardShownYPosition == nil {
                 let bottom = (presentable as? PanModalPresentable.LayoutType)?.bottomLayoutOffset ?? 0.0
-                keyboardShownYPosition = presentedView.frame.origin.y - keyboardSize.height + bottom
+                keyboardShownYPosition = presentedView.frame.origin.y - keyboardChange + bottom
+            } else {
+                keyboardShownYPosition = keyboardShownYPosition! - keyboardChange
             }
 
             guard let keyboardShownYPosition = keyboardShownYPosition else { return }
@@ -717,7 +719,7 @@ private extension PanModalPresentationController {
      Check if the given velocity is within the sensitivity range
      */
     func isVelocityWithinSensitivityRange(_ velocity: CGFloat) -> Bool {
-        return (abs(velocity) - (1000 * (1 - Constants.snapMovementSensitivity))) > 0
+        return velocity > Constants.swipeVelocityThreshold
     }
 
     func snap(toYPosition yPos: CGFloat) {
